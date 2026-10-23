@@ -1,0 +1,47 @@
+[gd_scene format=3 uid="uid://cqipvshok017n"]
+
+[ext_resource type="Script" uid="uid://8dawsvr2kkc8" path="res://Scripts/player.gd" id="1_cvnsp"]
+[ext_resource type="PackedScene" uid="uid://di82l2oslrl5j" path="res://Scenes/gun.tscn" id="1_v0iea"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_l6m1g"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
+albedo_color = Color(0.2, 0.45, 0.95, 1)
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_body"]
+material = SubResource("StandardMaterial3D_body")
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_player"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath("Head:rotation")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+properties/3/path = NodePath(".:is_crouching")
+properties/3/spawn = true
+properties/3/replication_mode = 2
+
+[node name="Player" type="CharacterBody3D" unique_id=1916438973]
+script = ExtResource("1_cvnsp")
+punch_force = 600.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=920116637]
+shape = SubResource("CapsuleShape3D_l6m1g")
+
+[node name="Body" type="MeshInstance3D" parent="." unique_id=2040022631]
+mesh = SubResource("CapsuleMesh_body")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=1417595985]
+replication_config = SubResource("SceneReplicationConfig_player")
+
+[node name="Head" type="Node3D" parent="." unique_id=1264166502]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.60806346, 0)
+
+[node name="Camera3D" type="Camera3D" parent="Head" unique_id=2028743301]
+
+[node name="Gun" parent="Head" unique_id=1062426975 instance=ExtResource("1_v0iea")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.44183666, -0.29686368, -0.55888426)

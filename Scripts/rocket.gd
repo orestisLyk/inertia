@@ -1,0 +1,60 @@
+extends CharacterBody3D
+
+@export var initial_speed := 10.0
+@export var acceleration := 30.0
+@export var max_speed := 80.0
+@export var blast_radius := 8.0
+@export var blast_force := 20.0
+@export var full_force_distance := 1.5
+
+
+func _ready() -> void:
+	# Only the server simulates rockets; clients receive the synced transform.
+	if not multiplayer.is_server():
+		set_physics_process(false)
+
+
+# Call before adding the rocket to the tree.
+func launch(shooter: PhysicsBody3D) -> void:
+	add_collision_exception_with(shooter)
+	velocity = -basis.z * initial_speed
+
+
+func _physics_process(delta: float) -> void:
+	velocity = velocity.move_toward(-global_basis.z * max_speed, acceleration * delta)
+	var collision := move_and_collide(velocity * delta)
+	if collision:
+		destroy(collision)
+
+
+# Override or edit this to change what happens on impact.
+func destroy(collision: KinematicCollision3D = null) -> void:
+	var point := collision.get_position() if collision else global_position
+	var victim := collision.get_collider() if collision else null
+	if victim and victim.has_method("die"):
+		victim.die()
+	explode(point)
+	queue_free()
+
+
+func explode(point: Vector3) -> void:
+	var sphere := SphereShape3D.new()
+	sphere.radius = blast_radius
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = sphere
+	query.transform = Transform3D(Basis.IDENTITY, point)
+	query.exclude = [get_rid()]
+	for hit in get_world_3d().direct_space_state.intersect_shape(query, 32):
+		push_body(hit.collider, point)
+
+
+func push_body(body: Node3D, point: Vector3) -> void:
+	var offset := body.global_position - point
+	var distance := maxf(offset.length(), full_force_distance)
+	# Inverse square dropoff, capped at full force close to the blast.
+	var strength := blast_force * pow(full_force_distance / distance, 2.0)
+	var impulse := offset.normalized() * strength
+	if body is RigidBody3D:
+		body.apply_central_impulse(impulse)
+	elif body.has_method("apply_knockback_networked"):
+		body.apply_knockback_networked(impulse)

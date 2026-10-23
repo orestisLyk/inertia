@@ -1,0 +1,129 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" uid="uid://bi0yo0rwa0yw5" path="res://Scenes/ground.tscn" id="1_ground"]
+[ext_resource type="Script" path="res://Scripts/main.gd" id="2_main"]
+[ext_resource type="PackedScene" path="res://Scenes/rigid_block.tscn" id="3_rigid"]
+
+[node name="Main" type="Node3D"]
+script = ExtResource("2_main")
+kill_radius = 40.0
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="Rockets" type="Node3D" parent="."]
+
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://Scenes/player.tscn")
+spawn_path = NodePath("../Players")
+
+[node name="RocketSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://Scenes/rocket.tscn")
+spawn_path = NodePath("../Rockets")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.9, 0.4, 0, -0.4, 0.9, 0, 6, 10)
+
+[node name="Ground" parent="." instance=ExtResource("1_ground")]
+transform = Transform3D(50, 0, 0, 0, 3.342, 0, 0, 0, 50, 0, -3.714898, 0)
+
+[node name="Level" type="Node3D" parent="."]
+
+[node name="Pyramid1" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.1, -1.04, -14)
+size = Vector3(2, 2, 2)
+
+[node name="Pyramid2" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, -1.04, -14)
+size = Vector3(2, 2, 2)
+
+[node name="Pyramid3" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.9, -1.04, -14)
+size = Vector3(2, 2, 2)
+
+[node name="Pyramid4" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.05, 1.06, -14)
+size = Vector3(2, 2, 2)
+
+[node name="Pyramid5" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.95, 1.06, -14)
+size = Vector3(2, 2, 2)
+
+[node name="Pyramid6" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 3.16, -14)
+size = Vector3(2, 2, 2)
+
+[node name="Tower1" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, -1.29, -14)
+size = Vector3(1.5, 1.5, 1.5)
+
+[node name="Tower2" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0.31, -14)
+size = Vector3(1.5, 1.5, 1.5)
+
+[node name="Tower3" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 1.91, -14)
+size = Vector3(1.5, 1.5, 1.5)
+
+[node name="Tower4" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 3.51, -14)
+size = Vector3(1.5, 1.5, 1.5)
+
+[node name="WallA1" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.65, -1.29, 12)
+size = Vector3(3, 1.5, 1)
+
+[node name="WallA2" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.55, -1.29, 12)
+size = Vector3(3, 1.5, 1)
+
+[node name="WallA3" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.55, -1.29, 12)
+size = Vector3(3, 1.5, 1)
+
+[node name="WallA4" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.65, -1.29, 12)
+size = Vector3(3, 1.5, 1)
+
+[node name="WallB1" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.1, 0.31, 12)
+size = Vector3(3, 1.5, 1)
+
+[node name="WallB2" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.31, 12)
+size = Vector3(3, 1.5, 1)
+
+[node name="WallB3" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1, 0.31, 12)
+size = Vector3(3, 1.5, 1)
+
+[node name="Step1" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, -1.64, 6)
+size = Vector3(4, 0.8, 4)
+
+[node name="Step2" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, -1.24, 10.1)
+size = Vector3(4, 1.6, 4)
+
+[node name="Step3" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, -0.84, 14.2)
+size = Vector3(4, 2.4, 4)
+
+[node name="Slab" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, -1.54, 10)
+size = Vector3(8, 1, 8)
+
+[node name="Pillar1" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0.96, -6)
+size = Vector3(1.5, 6, 1.5)
+
+[node name="Pillar2" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0.96, -6)
+size = Vector3(1.5, 6, 1.5)
+
+[node name="Pillar3" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.96, -20)
+size = Vector3(1.5, 6, 1.5)
+
+[node name="BigCube" parent="Level" instance=ExtResource("3_rigid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, -0.04, -4)
+size = Vector3(4, 4, 4)

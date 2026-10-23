@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/rigid_block.gd" id="1_rigid"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rigid"]
+albedo_color = Color(0.75, 0.35, 0.3, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_rigid"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_rigid"]
+material = SubResource("StandardMaterial3D_rigid")
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_rigid"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+
+[node name="RigidBlock" type="RigidBody3D"]
+script = ExtResource("1_rigid")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_rigid")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_rigid")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_rigid")

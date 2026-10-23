@@ -1,0 +1,61 @@
+[gd_scene format=3 uid="uid://0cwd25tesf5d"]
+
+[ext_resource type="PackedScene" uid="uid://bi0yo0rwa0yw5" path="res://Scenes/ground.tscn" id="2_8gbba"]
+[ext_resource type="Script" path="res://Scripts/main.gd" id="3_main"]
+[ext_resource type="PackedScene" uid="uid://babfjpx24cvae" path="res://Scenes/block.tscn" id="4_block"]
+
+[node name="Main" type="Node3D" unique_id=1060872817]
+script = ExtResource("3_main")
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="Rockets" type="Node3D" parent="."]
+
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://Scenes/player.tscn")
+spawn_path = NodePath("../Players")
+
+[node name="RocketSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://Scenes/rocket.tscn")
+spawn_path = NodePath("../Rockets")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.9, 0.4, 0, -0.4, 0.9, 0, 6, 10)
+
+[node name="Ground" parent="." unique_id=688036606 instance=ExtResource("2_8gbba")]
+transform = Transform3D(16.71, 0, 0, 0, 3.342, 0, 0, 0, 16.71, 0, -3.714898, 0)
+
+[node name="Level" type="Node3D" parent="."]
+
+[node name="Step1" parent="Level" instance=ExtResource("4_block")]
+transform = Transform3D(2, 0, 0, 0, 0.8, 0, 0, 0, 4, -6.5, -1.64, -6)
+
+[node name="Step2" parent="Level" instance=ExtResource("4_block")]
+transform = Transform3D(2, 0, 0, 0, 1.6, 0, 0, 0, 4, -4.5, -1.24, -6)
+
+[node name="Step3" parent="Level" instance=ExtResource("4_block")]
+transform = Transform3D(2, 0, 0, 0, 2.4, 0, 0, 0, 4, -2.5, -0.84, -6)
+
+[node name="CenterWall" parent="Level" instance=ExtResource("4_block")]
+transform = Transform3D(6, 0, 0, 0, 4, 0, 0, 0, 1, 0, -0.04, 3)
+
+[node name="Pillar1" parent="Level" instance=ExtResource("4_block")]
+transform = Transform3D(1.5, 0, 0, 0, 6, 0, 0, 0, 1.5, 5, 0.96, -5)
+
+[node name="Pillar2" parent="Level" instance=ExtResource("4_block")]
+transform = Transform3D(1.5, 0, 0, 0, 6, 0, 0, 0, 1.5, -5, 0.96, 5)
+
+[node name="Pillar3" parent="Level" instance=ExtResource("4_block")]
+transform = Transform3D(1.5, 0, 0, 0, 6, 0, 0, 0, 1.5, 6, 0.96, 6)
+
+[node name="Crate1" parent="Level" instance=ExtResource("4_block")]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 3, -1.04, -3)
+
+[node name="Crate2" parent="Level" instance=ExtResource("4_block")]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, -3, -1.04, 0)
+
+[node name="Crate3" parent="Level" instance=ExtResource("4_block")]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 6.5, -1.04, 0)
+
+[node name="RaisedPlatform" parent="Level" instance=ExtResource("2_8gbba")]
+transform = Transform3D(5, 0, 0, 0, 1, 0, 0, 0, 5, 11, 0, 0)
