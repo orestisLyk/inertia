@@ -88,6 +88,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			request_punch.rpc_id(1, head.global_position, head.global_basis)
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F:
+		request_punch.rpc_id(1, head.global_position, head.global_basis)
 
 
 func _physics_process(delta: float) -> void:
