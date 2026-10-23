@@ -50,6 +50,7 @@ var slide_direction := Vector3.ZERO
 var head_stand_y := 0.0
 var last_fire_msec := 0
 var last_punch_msec := 0
+var last_local_fire_msec := 0
 var bumped_bodies: Array[Node] = []
 var footstep_timer := 0.0
 var last_position := Vector3.ZERO
@@ -370,8 +371,21 @@ func respawn(spawn_position: Vector3) -> void:
 
 
 func primary_action() -> void:
-	print("Left mouse button clicked")
+	var now := Time.get_ticks_msec()
+	if now - last_local_fire_msec < fire_cooldown * 1000.0:
+		return
+	last_local_fire_msec = now
+	if not multiplayer.is_server():
+		spawn_ghost_rocket()
 	request_fire.rpc_id(1, muzzle.global_position, head.global_basis)
+
+
+# Instant local feedback; the server's rocket takes over its job and replaces it.
+func spawn_ghost_rocket() -> void:
+	var ghost := rocket_scene.instantiate() as Node3D
+	ghost.set("is_ghost", true)
+	ghost.transform = Transform3D(head.global_basis.orthonormalized(), muzzle.global_position)
+	get_tree().current_scene.add_child(ghost)
 
 
 # Runs on the server only; clients ask, the server spawns the rocket.
