@@ -155,16 +155,35 @@ func random_spawn_position() -> Vector3:
 
 
 # Server only. Called when any player dies (rocket, traps, ...).
-func _on_player_died(player: Node3D) -> void:
+func _on_player_died(_player: Node3D) -> void:
+	check_round_end()
+
+
+# Server only. The round ends when one player is left alive (or none, if playing solo).
+func check_round_end(ignore: Node = null) -> void:
 	if not round_active:
 		return
+	var alive: Array[Node] = []
+	var total := 0
+	for player in players.get_children():
+		if player == ignore or player.is_queued_for_deletion():
+			continue
+		total += 1
+		if not player.is_dead:
+			alive.append(player)
+	var remaining_needed := 1 if total > 1 else 0
+	if alive.size() > remaining_needed:
+		return
 	round_active = false
-	end_round(player.name.to_int())
+	end_round(alive[0].name.to_int() if alive.size() == 1 else 0)
 
 
-# Override or edit this to change what happens when a round ends.
-func end_round(loser_id: int) -> void:
-	show_round_message.rpc("Player %d died. Round over!" % loser_id)
+# Override or edit this to change what happens when a round ends. winner_id is 0 if nobody survived.
+func end_round(winner_id: int) -> void:
+	if winner_id == 0:
+		show_round_message.rpc("Round over!")
+	else:
+		show_round_message.rpc("Player %d wins!" % winner_id)
 	await get_tree().create_timer(round_restart_delay).timeout
 	start_round()
 
@@ -192,6 +211,7 @@ func remove_player(id: int) -> void:
 	var player := players.get_node_or_null(str(id))
 	if player:
 		player.queue_free()
+		check_round_end(player)
 
 
 func _on_peer_connected(id: int) -> void:
