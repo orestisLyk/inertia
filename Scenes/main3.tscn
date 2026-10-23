@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" uid="uid://bi0yo0rwa0yw5" path="res://Scenes/ground.tscn" id="1_ground"]
+[ext_resource type="Script" path="res://Scripts/main.gd" id="2_main"]
+[ext_resource type="Script" path="res://Scripts/level3.gd" id="3_level"]
+
+[node name="Main" type="Node3D"]
+script = ExtResource("2_main")
+spawn_radius = 8.0
+kill_radius = 80.0
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="Rockets" type="Node3D" parent="."]
+
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://Scenes/player.tscn")
+spawn_path = NodePath("../Players")
+
+[node name="RocketSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://Scenes/rocket.tscn")
+spawn_path = NodePath("../Rockets")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.9, 0.4, 0, -0.4, 0.9, 0, 6, 10)
+
+[node name="Ground" parent="." instance=ExtResource("1_ground")]
+transform = Transform3D(100, 0, 0, 0, 3.342, 0, 0, 0, 100, 0, -3.714898, 0)
+
+[node name="Level" type="Node3D" parent="."]
+script = ExtResource("3_level")

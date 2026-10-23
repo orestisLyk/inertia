@@ -8,6 +8,7 @@ extends RigidBody3D
 
 
 func _ready() -> void:
+	add_to_group("rigid_blocks")
 	# Rigid bodies can't be scaled, so each block builds its own shape and mesh at its size.
 	var box := BoxShape3D.new()
 	box.size = size
@@ -24,3 +25,8 @@ func _physics_process(_delta: float) -> void:
 	var should_freeze := not multiplayer.is_server()
 	if freeze != should_freeze:
 		freeze = should_freeze
+
+
+@rpc("authority", "call_local", "reliable")
+func despawn() -> void:
+	queue_free()

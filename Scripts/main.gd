@@ -18,6 +18,8 @@ var menu: Control
 var address_field: LineEdit
 var status_label: Label
 var lobby_label: Label
+var ping_label: Label
+var ping_timer := 0.0
 
 
 func _ready() -> void:
@@ -48,15 +50,59 @@ func _add_edge_detection() -> void:
 	add_child(edge_overlay)
 
 
+func _process(delta: float) -> void:
+	update_ping(delta)
+
+
+# Measured with a reliable RPC round trip, so it works for both ENet and Steam and
+# includes any stalls from packet loss.
+func update_ping(delta: float) -> void:
+	var peer := multiplayer.multiplayer_peer
+	if peer == null or peer is OfflineMultiplayerPeer or peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
+		ping_label.text = ""
+		return
+	if multiplayer.is_server():
+		ping_label.text = "Host"
+		return
+	ping_timer -= delta
+	if ping_timer <= 0.0:
+		ping_timer = 1.0
+		ping_request.rpc_id(1, Time.get_ticks_msec())
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func ping_request(sent_msec: int) -> void:
+	if multiplayer.is_server():
+		ping_reply.rpc_id(multiplayer.get_remote_sender_id(), sent_msec)
+
+
+@rpc("authority", "call_remote", "reliable")
+func ping_reply(sent_msec: int) -> void:
+	ping_label.text = "Ping: %d ms" % (Time.get_ticks_msec() - sent_msec)
+
+
 func _physics_process(_delta: float) -> void:
-	if multiplayer.is_server() and round_active:
+	if not multiplayer.is_server():
+		return
+	despawn_out_of_bounds_items()
+	if round_active:
 		check_out_of_bounds()
+
+
+# Server only. Rockets and rigid blocks past kill_radius are removed on every peer.
+func despawn_out_of_bounds_items() -> void:
+	for rocket in $Rockets.get_children():
+		if not rocket.is_queued_for_deletion() and is_out_of_bounds(rocket.global_position):
+			rocket.queue_free()
+	for block in get_tree().get_nodes_in_group("rigid_blocks"):
+		if not block.is_queued_for_deletion() and is_out_of_bounds(block.global_position):
+			block.despawn.rpc()
 
 
 # Server only. Anyone farther than kill_radius from map_center dies.
 func check_out_of_bounds() -> void:
 	for player in players.get_children():
-		if not player.is_dead and is_out_of_bounds(player.global_position):
+		if not player.is_dead and not player.awaiting_respawn and is_out_of_bounds(player.global_position):
 			player.die()
 
 
@@ -97,6 +143,12 @@ func build_menu() -> void:
 	lobby_label.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	lobby_label.position = Vector2(16, -16)
 	layer.add_child(lobby_label)
+
+	ping_label = Label.new()
+	ping_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	ping_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	ping_label.position = Vector2(-16, 16)
+	layer.add_child(ping_label)
 
 
 func add_menu_button(text: String, callback: Callable) -> void:
@@ -192,9 +244,19 @@ func end_round(winner_id: int) -> void:
 
 func start_round() -> void:
 	for player in players.get_children():
+		# Ignore the out-of-bounds check until the owner has applied the respawn.
+		player.awaiting_respawn = true
+		release_respawn_guard(player, 5.0)
 		player.respawn.rpc(random_spawn_position())
 	show_round_message.rpc("")
 	round_active = true
+
+
+# Fallback in case a client never confirms its respawn.
+func release_respawn_guard(player: Node, delay: float) -> void:
+	await get_tree().create_timer(delay).timeout
+	if is_instance_valid(player):
+		player.awaiting_respawn = false
 
 
 @rpc("authority", "call_local", "reliable")
