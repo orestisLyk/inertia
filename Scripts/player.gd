@@ -26,6 +26,9 @@ extends CharacterBody3D
 @export var punch_cooldown := 0.5
 @export var bump_force := 12.0
 @export var max_bump_distance := 6.0
+@export var footstep_sound: AudioStream = preload("res://Sound/Effects/footstep_wood_000.ogg")
+@export var footstep_interval := 0.4
+@export var footstep_min_speed := 1.0
 
 var dash_timer := 0.0
 var dash_cooldown_timer := 0.0
@@ -48,6 +51,9 @@ var head_stand_y := 0.0
 var last_fire_msec := 0
 var last_punch_msec := 0
 var bumped_bodies: Array[Node] = []
+var footstep_timer := 0.0
+var last_position := Vector3.ZERO
+var footstep_player: AudioStreamPlayer3D
 var is_dead := false
 
 signal died(player: Node3D)
@@ -67,6 +73,12 @@ func _ready() -> void:
 	var is_local := is_multiplayer_authority()
 	camera.current = is_local
 	body_mesh.visible = not is_local
+	last_position = global_position
+	footstep_player = AudioStreamPlayer3D.new()
+	footstep_player.stream = footstep_sound
+	footstep_player.unit_size = 4.0
+	footstep_player.max_distance = 40.0
+	add_child(footstep_player)
 	if is_local:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -96,7 +108,23 @@ func _physics_process(delta: float) -> void:
 	if is_multiplayer_authority() and not is_dead:
 		simulate(delta)
 	update_crouch_visuals(delta)
+	update_footsteps(delta)
 
+
+# Uses the synced position so remote players' footsteps are heard too.
+func update_footsteps(delta: float) -> void:
+	var moved := global_position - last_position
+	last_position = global_position
+	var horizontal_speed := Vector2(moved.x, moved.z).length() / delta
+	var grounded := is_on_floor() if is_multiplayer_authority() else absf(moved.y) < 0.02
+	if is_dead or is_sliding or not grounded or horizontal_speed < footstep_min_speed:
+		footstep_timer = 0.0
+		return
+	footstep_timer -= delta
+	if footstep_timer <= 0.0:
+		footstep_timer = footstep_interval
+		footstep_player.pitch_scale = randf_range(0.9, 1.1)
+		footstep_player.play()
 
 func simulate(delta: float) -> void:
 	apply_gravity(delta)
