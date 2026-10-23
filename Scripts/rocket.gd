@@ -38,6 +38,9 @@ func destroy(collision: KinematicCollision3D = null) -> void:
 
 
 func explode(point: Vector3) -> void:
+	var main := get_tree().current_scene
+	if main and main.has_method("spawn_explosion"):
+		main.spawn_explosion.rpc(point)
 	var sphere := SphereShape3D.new()
 	sphere.radius = blast_radius
 	var query := PhysicsShapeQueryParameters3D.new()

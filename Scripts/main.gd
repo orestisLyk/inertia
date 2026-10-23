@@ -1,6 +1,7 @@
 extends Node3D
 
 const EDGE_DETECTION_SHADER: Shader = preload("res://Shaders/edge_detection.gdshader")
+const EXPLOSION_SCENE: PackedScene = preload("res://Scenes/explosion.tscn")
 
 @export var spawn_radius := 4.0
 @export var spawn_height := 3.0
@@ -173,6 +174,13 @@ func start_round() -> void:
 		player.respawn.rpc(random_spawn_position())
 	show_round_message.rpc("")
 	round_active = true
+
+
+@rpc("authority", "call_local", "reliable")
+func spawn_explosion(point: Vector3) -> void:
+	var explosion: Node3D = EXPLOSION_SCENE.instantiate()
+	add_child(explosion)
+	explosion.global_position = point
 
 
 @rpc("authority", "call_local", "reliable")

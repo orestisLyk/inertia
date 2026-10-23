@@ -1,0 +1,87 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/explosion.gd" id="1_expl"]
+
+[sub_resource type="Gradient" id="Gradient_fire"]
+offsets = PackedFloat32Array(0, 0.35, 1)
+colors = PackedColorArray(1, 0.95, 0.5, 1, 1, 0.4, 0.05, 1, 0.2, 0.05, 0.02, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_fire"]
+gradient = SubResource("Gradient_fire")
+
+[sub_resource type="Curve" id="Curve_shrink"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), -1.5, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_shrink"]
+curve = SubResource("Curve_shrink")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_fire"]
+emission_shape = 1
+emission_sphere_radius = 0.4
+direction = Vector3(0, 1, 0)
+spread = 180.0
+initial_velocity_min = 4.0
+initial_velocity_max = 9.0
+gravity = Vector3(0, -2, 0)
+damping_min = 3.0
+damping_max = 5.0
+scale_min = 0.6
+scale_max = 1.4
+scale_curve = SubResource("CurveTexture_shrink")
+color_ramp = SubResource("GradientTexture1D_fire")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fire"]
+shading_mode = 0
+vertex_color_use_as_albedo = true
+emission_enabled = true
+emission = Color(1, 0.4, 0.05, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_fire"]
+material = SubResource("StandardMaterial3D_fire")
+radius = 0.3
+height = 0.6
+radial_segments = 8
+rings = 4
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_sparks"]
+direction = Vector3(0, 1, 0)
+spread = 180.0
+initial_velocity_min = 8.0
+initial_velocity_max = 16.0
+gravity = Vector3(0, -15, 0)
+scale_min = 0.5
+scale_max = 1.0
+color = Color(1, 0.8, 0.3, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sparks"]
+shading_mode = 0
+albedo_color = Color(1, 0.85, 0.35, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_sparks"]
+material = SubResource("StandardMaterial3D_sparks")
+radius = 0.06
+height = 0.12
+radial_segments = 4
+rings = 2
+
+[node name="Explosion" type="Node3D"]
+script = ExtResource("1_expl")
+
+[node name="Fire" type="GPUParticles3D" parent="."]
+emitting = false
+amount = 48
+lifetime = 0.7
+one_shot = true
+explosiveness = 1.0
+process_material = SubResource("ParticleProcessMaterial_fire")
+draw_pass_1 = SubResource("SphereMesh_fire")
+
+[node name="Sparks" type="GPUParticles3D" parent="."]
+emitting = false
+amount = 30
+lifetime = 0.9
+one_shot = true
+explosiveness = 1.0
+process_material = SubResource("ParticleProcessMaterial_sparks")
+draw_pass_1 = SubResource("SphereMesh_sparks")
