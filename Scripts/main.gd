@@ -12,6 +12,7 @@ const EXPLOSION_SCENE: PackedScene = preload("res://Scenes/explosion.tscn")
 @onready var players: Node3D = $Players
 
 var round_active := true
+var player_names := {}
 var round_label: Label
 var menu: Control
 var address_field: LineEdit
@@ -119,6 +120,7 @@ func _on_steam_lobby_hosted(lobby_id: int) -> void:
 	menu.hide()
 	lobby_label.text = "Steam lobby ID: %d" % lobby_id
 	add_player(1)
+	submit_name(get_local_name())
 
 
 func _on_steam_failed(message: String) -> void:
@@ -183,7 +185,7 @@ func end_round(winner_id: int) -> void:
 	if winner_id == 0:
 		show_round_message.rpc("Round over!")
 	else:
-		show_round_message.rpc("Player %d wins!" % winner_id)
+		show_round_message.rpc("%s wins!" % get_player_name(winner_id))
 	await get_tree().create_timer(round_restart_delay).timeout
 	start_round()
 
@@ -207,7 +209,39 @@ func show_round_message(text: String) -> void:
 	round_label.text = text
 
 
+func get_player_name(id: int) -> String:
+	return player_names.get(id, "Player %d" % id)
+
+
+func get_local_name() -> String:
+	if Network.steam_initialized:
+		return str(Network.steam.getPersonaName())
+	return ""
+
+
+@rpc("any_peer", "call_local", "reliable")
+func submit_name(player_name: String) -> void:
+	if not multiplayer.is_server():
+		return
+	var id := multiplayer.get_remote_sender_id()
+	if id == 0:
+		id = 1
+	player_name = player_name.strip_edges().left(32)
+	if player_name.is_empty():
+		player_names.erase(id)
+	else:
+		player_names[id] = player_name
+	sync_names.rpc(player_names)
+
+
+@rpc("authority", "call_local", "reliable")
+func sync_names(names: Dictionary) -> void:
+	player_names = names
+
+
 func remove_player(id: int) -> void:
+	player_names.erase(id)
+	sync_names.rpc(player_names)
 	var player := players.get_node_or_null(str(id))
 	if player:
 		player.queue_free()
@@ -226,6 +260,7 @@ func _on_peer_disconnected(id: int) -> void:
 
 func _on_connected_to_server() -> void:
 	menu.hide()
+	submit_name.rpc_id(1, get_local_name())
 
 
 func _on_connection_failed() -> void:
