@@ -27,6 +27,11 @@ properties/3/replication_mode = 2
 
 [node name="Player" type="CharacterBody3D" unique_id=1916438973]
 script = ExtResource("1_cvnsp")
+walk_speed = 7.11
+jump_velocity = 8.005
+slide_speed = 15.0
+slide_duration = 1.21
+dash_duration = 0.5
 punch_force = 200.0
 bump_force = 100.0
 
