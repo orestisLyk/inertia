@@ -27,7 +27,8 @@ properties/3/replication_mode = 2
 
 [node name="Player" type="CharacterBody3D" unique_id=1916438973]
 script = ExtResource("1_cvnsp")
-punch_force = 600.0
+punch_force = 200.0
+bump_force = 100.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=920116637]
 shape = SubResource("CapsuleShape3D_l6m1g")
