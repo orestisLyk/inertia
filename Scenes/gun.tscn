@@ -13,4 +13,4 @@ transform = Transform3D(0.4, 0, 0, 0, 0.4, 0, 0, 0, 1, 0, 0, 0)
 mesh = SubResource("BoxMesh_l6m1g")
 
 [node name="Muzzle" type="Node3D" parent="." unique_id=1054456489]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.50464743, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.468)
