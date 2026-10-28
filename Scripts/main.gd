@@ -20,6 +20,9 @@ var status_label: Label
 var lobby_label: Label
 var ping_label: Label
 var ping_timer := 0.0
+var wins := {}
+var scoreboard: PanelContainer
+var scoreboard_label: Label
 
 
 func _ready() -> void:
@@ -52,6 +55,7 @@ func _add_edge_detection() -> void:
 
 func _process(delta: float) -> void:
 	update_ping(delta)
+	update_scoreboard()
 
 
 # Measured with a reliable RPC round trip, so it works for both ENet and Steam and
@@ -150,6 +154,30 @@ func build_menu() -> void:
 	ping_label.position = Vector2(-16, 16)
 	layer.add_child(ping_label)
 
+	scoreboard = PanelContainer.new()
+	scoreboard.set_anchors_preset(Control.PRESET_CENTER)
+	scoreboard.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	scoreboard.grow_vertical = Control.GROW_DIRECTION_BOTH
+	scoreboard.visible = false
+	scoreboard_label = Label.new()
+	scoreboard.add_child(scoreboard_label)
+	layer.add_child(scoreboard)
+
+
+# Hold Tab to see round wins.
+func update_scoreboard() -> void:
+	scoreboard.visible = Input.is_key_pressed(KEY_TAB) and players.get_child_count() > 0
+	if not scoreboard.visible:
+		return
+	var ids: Array = []
+	for player in players.get_children():
+		ids.append(player.name.to_int())
+	ids.sort_custom(func(a: int, b: int) -> bool: return wins.get(a, 0) > wins.get(b, 0))
+	var text := "SCOREBOARD\n"
+	for id: int in ids:
+		text += "\n%s   %d" % [get_player_name(id), wins.get(id, 0)]
+	scoreboard_label.text = text
+
 
 func add_menu_button(text: String, callback: Callable) -> void:
 	var button := Button.new()
@@ -237,6 +265,8 @@ func end_round(winner_id: int) -> void:
 	if winner_id == 0:
 		show_round_message.rpc("Round over!")
 	else:
+		wins[winner_id] = wins.get(winner_id, 0) + 1
+		sync_wins.rpc(wins)
 		show_round_message.rpc("%s wins!" % get_player_name(winner_id))
 	await get_tree().create_timer(round_restart_delay).timeout
 	start_round()
@@ -297,13 +327,20 @@ func submit_name(player_name: String) -> void:
 
 
 @rpc("authority", "call_local", "reliable")
+func sync_wins(new_wins: Dictionary) -> void:
+	wins = new_wins
+
+
+@rpc("authority", "call_local", "reliable")
 func sync_names(names: Dictionary) -> void:
 	player_names = names
 
 
 func remove_player(id: int) -> void:
 	player_names.erase(id)
+	wins.erase(id)
 	sync_names.rpc(player_names)
+	sync_wins.rpc(wins)
 	var player := players.get_node_or_null(str(id))
 	if player:
 		player.queue_free()
@@ -313,6 +350,7 @@ func remove_player(id: int) -> void:
 func _on_peer_connected(id: int) -> void:
 	if multiplayer.is_server():
 		add_player(id)
+		sync_wins.rpc_id(id, wins)
 
 
 func _on_peer_disconnected(id: int) -> void:
