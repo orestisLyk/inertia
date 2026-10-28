@@ -5,6 +5,7 @@ extends CharacterBody3D
 @export var max_speed := 80.0
 @export var blast_radius := 8.0
 @export var blast_force := 20.0
+@export var max_damage := 60.0
 @export var full_force_distance := 1.5
 @export var self_destruct_time := 5.0
 
@@ -37,9 +38,6 @@ func _physics_process(delta: float) -> void:
 # Override or edit this to change what happens on impact.
 func destroy(collision: KinematicCollision3D = null) -> void:
 	var point := collision.get_position() if collision else global_position
-	var victim := collision.get_collider() if collision else null
-	if victim and victim.has_method("die"):
-		victim.die()
 	explode(point)
 	queue_free()
 
@@ -67,4 +65,7 @@ func push_body(body: Node3D, point: Vector3) -> void:
 	if body is RigidBody3D:
 		body.apply_central_impulse(impulse)
 	elif body.has_method("apply_knockback_networked"):
+		# Damage first so the knockback already accounts for the lost health.
+		if body.has_method("take_damage") and offset.length() <= blast_radius:
+			body.take_damage(max_damage * pow(full_force_distance / distance, 2.0))
 		body.apply_knockback_networked(impulse)

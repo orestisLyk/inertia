@@ -30,6 +30,13 @@ extends CharacterBody3D
 @export var footstep_interval := 0.4
 @export var footstep_min_speed := 1.0
 
+@export var max_health := 100.0
+@export var min_mass_ratio := 0.3
+var health := max_health
+var overhead_back: Sprite3D
+var overhead_fill: Sprite3D
+var hud_back: ColorRect
+var hud_fill: ColorRect
 var dash_timer := 0.0
 var dash_cooldown_timer := 0.0
 var dash_direction := Vector3.ZERO
@@ -82,6 +89,62 @@ func _ready() -> void:
 	add_child(footstep_player)
 	if is_local:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		create_hud_bar()
+	else:
+		create_overhead_bar()
+
+
+func health_color() -> Color:
+	# Hue 0.33 is green, 0.0 is red.
+	return Color.from_hsv(0.33 * clampf(health / max_health, 0.0, 1.0), 0.85, 0.9)
+
+
+func create_overhead_bar() -> void:
+	var image := Image.create(100, 10, false, Image.FORMAT_RGBA8)
+	image.fill(Color.WHITE)
+	var texture := ImageTexture.create_from_image(image)
+	overhead_back = Sprite3D.new()
+	overhead_fill = Sprite3D.new()
+	for sprite: Sprite3D in [overhead_back, overhead_fill]:
+		sprite.texture = texture
+		sprite.pixel_size = 0.012
+		sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		sprite.shaded = false
+		sprite.centered = false
+		sprite.offset = Vector2(-50, -5)
+		sprite.position = Vector3(0, 1.4, 0)
+		sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(sprite)
+	overhead_back.modulate = Color(0, 0, 0, 0.6)
+	overhead_fill.render_priority = 1
+
+
+func create_hud_bar() -> void:
+	var layer := CanvasLayer.new()
+	add_child(layer)
+	hud_back = ColorRect.new()
+	hud_back.color = Color(0, 0, 0, 0.6)
+	hud_back.size = Vector2(240, 22)
+	hud_back.position = Vector2(20, -42)
+	hud_back.set_anchors_preset(Control.PRESET_BOTTOM_LEFT, true)
+	hud_back.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	layer.add_child(hud_back)
+	hud_fill = ColorRect.new()
+	hud_fill.position = Vector2(3, 3)
+	hud_fill.size = Vector2(234, 16)
+	hud_back.add_child(hud_fill)
+
+
+func update_health_bars() -> void:
+	var ratio := clampf(health / max_health, 0.0, 1.0)
+	if overhead_fill:
+		overhead_fill.scale.x = ratio
+		overhead_fill.modulate = health_color()
+		overhead_back.visible = not is_dead
+		overhead_fill.visible = not is_dead
+	if hud_fill:
+		hud_fill.size.x = 234.0 * ratio
+		hud_fill.color = health_color()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -110,6 +173,7 @@ func _physics_process(delta: float) -> void:
 		simulate(delta)
 	update_crouch_visuals(delta)
 	update_footsteps(delta)
+	update_health_bars()
 
 
 # Uses the synced position so remote players' footsteps are heard too.
@@ -338,6 +402,23 @@ func dash_step(delta: float) -> void:
 	velocity.z = dash_direction.z * speed
 
 
+func take_damage(amount: float) -> void:
+	if multiplayer.is_server() and not is_dead:
+		sync_health.rpc(maxf(health - amount, 0.0))
+
+
+@rpc("any_peer", "call_local", "reliable")
+func sync_health(value: float) -> void:
+	if multiplayer.get_remote_sender_id() not in [0, 1]:
+		return
+	health = value
+
+
+# Less health means less mass, so the same impulse pushes further.
+func get_mass_ratio() -> float:
+	return lerpf(min_mass_ratio, 1.0, health / max_health)
+
+
 # Server-side kill. Rockets and future traps call this.
 func die() -> void:
 	if not multiplayer.is_server() or is_dead:
@@ -366,6 +447,7 @@ func respawn(spawn_position: Vector3) -> void:
 	if multiplayer.get_remote_sender_id() not in [0, 1]:
 		return
 	position = spawn_position
+	health = max_health
 	knockback_timer = 0.0
 	set_dead(false)
 	if multiplayer.is_server() and is_multiplayer_authority():
@@ -452,6 +534,7 @@ func spawn_rocket(origin: Vector3, aim: Basis) -> void:
 
 # Players simulate their own velocity, so the server forwards blast impulses to the owner.
 func apply_knockback_networked(impulse: Vector3) -> void:
+	impulse /= get_mass_ratio()
 	var owner_id := get_multiplayer_authority()
 	if owner_id == multiplayer.get_unique_id():
 		apply_knockback(impulse)
