@@ -228,6 +228,7 @@ func add_player(id: int) -> void:
 	var player: Node3D = preload("res://Scenes/player.tscn").instantiate()
 	player.name = str(id)
 	player.position = random_spawn_position()
+	player.initial_spawn = player.position
 	player.died.connect(_on_player_died)
 	players.add_child(player)
 

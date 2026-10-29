@@ -73,6 +73,8 @@ var space_was_pressed := false
 @onready var collision: CollisionShape3D = $CollisionShape3D
 
 var is_crouching := false
+# Server-side record of where this player was placed when it joined.
+var initial_spawn := Vector3.ZERO
 var weapon_index := 1:
 	set(value):
 		weapon_index = value
@@ -133,6 +135,8 @@ func _ready() -> void:
 	if is_local:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		create_hud_bar()
+		if not multiplayer.is_server():
+			request_spawn_position.rpc_id(1)
 	else:
 		create_overhead_bar()
 
@@ -648,6 +652,23 @@ func set_dead(value: bool) -> void:
 		is_stomping = false
 	elif is_multiplayer_authority():
 		is_crouching = false
+
+
+# A joining client's own position can reach the server before the spawn data is applied, so the
+# server explicitly tells it where it was placed.
+@rpc("any_peer", "call_remote", "reliable")
+func request_spawn_position() -> void:
+	if not multiplayer.is_server() or multiplayer.get_remote_sender_id() != get_multiplayer_authority():
+		return
+	apply_spawn_position.rpc_id(get_multiplayer_authority(), initial_spawn)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func apply_spawn_position(spawn_position: Vector3) -> void:
+	if multiplayer.get_remote_sender_id() != 1:
+		return
+	position = spawn_position
+	velocity = Vector3.ZERO
 
 
 # Server tells the owning client where to respawn, since clients own their position.
