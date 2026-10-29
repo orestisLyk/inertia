@@ -283,6 +283,8 @@ func start_round() -> void:
 		release_respawn_guard(player, 5.0)
 		player.respawn.rpc(random_spawn_position())
 	show_round_message.rpc("")
+	for pickup in get_tree().get_nodes_in_group("pickups"):
+		pickup.reset()
 	round_active = true
 
 

@@ -24,7 +24,7 @@ material = SubResource("StandardMaterial3D_rocket")
 motion_mode = 1
 script = ExtResource("1_rkt")
 initial_speed = 5.0
-blast_radius = 16.0
+blast_radius = 30.0
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=234645758]
 replication_config = SubResource("SceneReplicationConfig_rocket")

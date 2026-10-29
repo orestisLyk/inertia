@@ -3,6 +3,7 @@ extends Node3D
 const BLOCK_SCENE: PackedScene = preload("res://Scenes/rigid_block.tscn")
 const BRIDGE_BLOCK_SCENE: PackedScene = preload("res://Scenes/bridge_block.tscn")
 const STATIC_BLOCK_SCENE: PackedScene = preload("res://Scenes/block.tscn")
+const BAZOOKA_PICKUP_SCENE: PackedScene = preload("res://Scenes/bazooka_pickup.tscn")
 const TOP := -2.04
 const ISLAND_OFFSET := 14.0
 const ISLAND_SIZE := 14.0
@@ -29,6 +30,16 @@ func _ready() -> void:
 	bridge(Vector2(0, half), 0.0)
 	bridge(Vector2(-half, 0), PI / 2.0)
 	bridge(Vector2(half, 0), PI / 2.0)
+	add_bazooka(Vector2(ISLAND_OFFSET - 4.5, ISLAND_OFFSET))
+
+
+# A single-shot bazooka lying on an island.
+func add_bazooka(xz: Vector2) -> void:
+	var pickup := BAZOOKA_PICKUP_SCENE.instantiate() as Node3D
+	pickup.name = "BazookaPickup"
+	pickup.set("ammo", 1)
+	pickup.position = Vector3(xz.x, TOP + 0.4, xz.y)
+	add_child(pickup)
 
 
 func get_spawn_position(height: float) -> Vector3:

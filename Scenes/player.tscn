@@ -3,6 +3,8 @@
 [ext_resource type="Script" uid="uid://8dawsvr2kkc8" path="res://Scripts/player.gd" id="1_cvnsp"]
 [ext_resource type="PackedScene" uid="uid://di82l2oslrl5j" path="res://Scenes/gun.tscn" id="1_v0iea"]
 
+[ext_resource type="PackedScene" path="res://Scenes/jedi_hand.tscn" id="3_hand"]
+
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_l6m1g"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
@@ -27,6 +29,12 @@ properties/3/replication_mode = 2
 properties/4/path = NodePath(".:is_ragdolling")
 properties/4/spawn = true
 properties/4/replication_mode = 2
+properties/5/path = NodePath(".:weapon_index")
+properties/5/spawn = true
+properties/5/replication_mode = 2
+properties/6/path = NodePath(".:has_bazooka")
+properties/6/spawn = true
+properties/6/replication_mode = 2
 
 [node name="Player" type="CharacterBody3D" unique_id=1916438973]
 script = ExtResource("1_cvnsp")
@@ -53,6 +61,10 @@ replication_config = SubResource("SceneReplicationConfig_player")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.60806346, 0)
 
 [node name="Camera3D" type="Camera3D" parent="Head" unique_id=2028743301]
+
+[node name="Hand" parent="Head" instance=ExtResource("3_hand")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, -0.25, -0.5)
+visible = false
 
 [node name="Gun" parent="Head" unique_id=1062426975 instance=ExtResource("1_v0iea")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.44183666, -0.29686368, -0.55888426)

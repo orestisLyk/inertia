@@ -33,7 +33,6 @@ extends CharacterBody3D
 @export var wall_jump_velocity := 5.0
 @export var wall_jump_push := 6.0
 @export var wall_jump_cooldown := 0.3
-@export var fire_cooldown := 0.3
 @export var max_fire_origin_error := 5.0
 @export var punch_radius := 1.0
 @export var punch_length := 3.0
@@ -70,11 +69,24 @@ var space_was_pressed := false
 @onready var camera: Camera3D = $Head/Camera3D
 @onready var gun: Node3D = $Head/Gun
 @onready var gun_rest: Transform3D = $Head/Gun.transform
-@onready var muzzle: Node3D = $Head/Gun/Muzzle
+@onready var weapons: Array[Node3D] = [$Head/Gun, $Head/Hand]
 @onready var collision: CollisionShape3D = $CollisionShape3D
-@export var rocket_scene: PackedScene = preload("res://Scenes/rocket.tscn")
 
 var is_crouching := false
+var weapon_index := 1:
+	set(value):
+		weapon_index = value
+		if is_node_ready():
+			apply_weapon()
+# The bazooka is a level pickup; until one is collected only the jedi hand is usable.
+var has_bazooka := false:
+	set(value):
+		has_bazooka = value
+		if is_node_ready():
+			apply_weapon()
+var weapon: Node3D:
+	get:
+		return weapons[current_weapon_index()]
 var is_sliding := false
 var is_stomping := false
 var stomp_start_y := 0.0
@@ -82,7 +94,6 @@ var last_stomp_msec := 0
 var slide_timer := 0.0
 var slide_direction := Vector3.ZERO
 var head_stand_y := 0.0
-var last_fire_msec := 0
 var last_punch_msec := 0
 var bumped_bodies: Array[Node] = []
 var footstep_timer := 0.0
@@ -103,7 +114,12 @@ func _enter_tree() -> void:
 
 
 func _ready() -> void:
+	# Stepping off a moving or spinning body must not carry its velocity into the player.
+	platform_on_leave = CharacterBody3D.PLATFORM_ON_LEAVE_DO_NOTHING
 	head_stand_y = head.position.y
+	for w in weapons:
+		w.setup(self)
+	apply_weapon()
 	collision.shape = collision.shape.duplicate()
 	var is_local := is_multiplayer_authority()
 	camera.current = is_local
@@ -197,6 +213,47 @@ func update_health_bars() -> void:
 		power_jump_hud_fill.color = Color(0.2, 1.0, 0.65) if charge_ratio >= 1.0 else Color(0.2, 0.75, 1.0)
 
 
+func current_weapon_index() -> int:
+	return weapon_index if weapon_index != 0 or has_bazooka else 1
+
+
+func apply_weapon() -> void:
+	var current := current_weapon_index()
+	for i in weapons.size():
+		weapons[i].visible = i == current
+		if i != current and weapons[i].equipped:
+			weapons[i].unequip()
+	if is_multiplayer_authority():
+		weapon.equip()
+
+
+func select_weapon(index: int) -> void:
+	if index == 0 and not has_bazooka:
+		return
+	if index != weapon_index and index >= 0 and index < weapons.size():
+		weapon_index = index
+
+
+# Sent by the server when this player collects a bazooka pickup.
+@rpc("any_peer", "call_local", "reliable")
+func grant_bazooka(ammo: int) -> void:
+	if multiplayer.get_remote_sender_id() not in [0, 1]:
+		return
+	weapons[0].ammo = ammo
+	has_bazooka = true
+	weapon_index = 0
+
+
+# Sent by the server when the bazooka is empty, or on respawn.
+@rpc("any_peer", "call_local", "reliable")
+func discard_bazooka() -> void:
+	if multiplayer.get_remote_sender_id() not in [0, 1]:
+		return
+	weapons[0].ammo = 0
+	has_bazooka = false
+	weapon_index = 1
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_multiplayer_authority() or is_dead:
 		return
@@ -207,11 +264,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 			else:
-				primary_action()
+				weapon.primary_action()
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			dash()
+			weapon.secondary_action()
 		elif event.button_index == MOUSE_BUTTON_XBUTTON1 or event.button_index == MOUSE_BUTTON_XBUTTON2:
 			request_punch.rpc_id(1, head.global_position, head.global_basis)
+	elif event is InputEventMouseButton and not event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			weapon.primary_released()
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			weapon.secondary_released()
+	elif event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_1, KEY_2]:
+		select_weapon(event.keycode - KEY_1)
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F:
@@ -594,6 +658,7 @@ func respawn(spawn_position: Vector3) -> void:
 	position = spawn_position
 	health = max_health
 	knockback_timer = 0.0
+	discard_bazooka()
 	set_dead(false)
 	if multiplayer.is_server() and is_multiplayer_authority():
 		awaiting_respawn = false
@@ -609,28 +674,6 @@ func confirm_respawn() -> void:
 	# Let in-flight position packets from before the respawn drain first.
 	await get_tree().create_timer(0.5).timeout
 	awaiting_respawn = false
-
-
-func primary_action() -> void:
-	print("Left mouse button clicked")
-	request_fire.rpc_id(1, muzzle.global_position, head.global_basis)
-
-
-# Runs on the server only; clients ask, the server spawns the rocket.
-@rpc("any_peer", "call_local", "reliable")
-func request_fire(origin: Vector3, aim: Basis) -> void:
-	if not multiplayer.is_server() or is_dead:
-		return
-	var sender := multiplayer.get_remote_sender_id()
-	if sender != 0 and sender != get_multiplayer_authority():
-		return
-	var now := Time.get_ticks_msec()
-	if now - last_fire_msec < fire_cooldown * 1000.0:
-		return
-	last_fire_msec = now
-	if origin.distance_to(muzzle.global_position) > max_fire_origin_error:
-		origin = muzzle.global_position
-	spawn_rocket(origin, aim.orthonormalized())
 
 
 # Runs on the server only; clients ask, the server pushes everything in the punch cylinder.
@@ -668,13 +711,6 @@ func punch(origin: Vector3, aim: Basis) -> void:
 			body.apply_central_impulse(impulse)
 		elif body.has_method("apply_knockback_networked"):
 			body.apply_knockback_networked(impulse)
-
-
-func spawn_rocket(origin: Vector3, aim: Basis) -> void:
-	var rocket := rocket_scene.instantiate() as Node3D
-	rocket.transform = Transform3D(aim, origin)
-	rocket.launch(self)
-	get_node("../../Rockets").add_child(rocket, true)
 
 
 # Players simulate their own velocity, so the server forwards blast impulses to the owner.

@@ -11,6 +11,7 @@ func _physics_process(_delta: float) -> void:
 	var should_freeze := not multiplayer.is_server() or anchored
 	if freeze != should_freeze:
 		freeze = should_freeze
+	bump_players()
 
 
 # Called by explosions on the server.

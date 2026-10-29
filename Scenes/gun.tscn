@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://di82l2oslrl5j"]
 
+[ext_resource type="Script" path="res://Scripts/bazooka.gd" id="1_bazooka"]
+
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gun"]
 albedo_color = Color(0.15, 0.15, 0.18, 1)
 
@@ -7,6 +9,7 @@ albedo_color = Color(0.15, 0.15, 0.18, 1)
 material = SubResource("StandardMaterial3D_gun")
 
 [node name="Gun" type="Node3D" unique_id=1062426975]
+script = ExtResource("1_bazooka")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1996950124]
 transform = Transform3D(0.4, 0, 0, 0, 0.4, 0, 0, 0, 1, 0, 0, 0)
