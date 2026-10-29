@@ -4,6 +4,7 @@ extends "res://Scripts/weapon.gd"
 @export var grab_tolerance := 5.0
 @export var collect_distance := 0.6
 @export var hover_distance := 2.5
+@export var hover_side_offset := 1.5
 @export var pull_stiffness := 8.0
 @export var pull_max_speed := 25.0
 @export var push_range := 10.0
@@ -205,7 +206,8 @@ func _physics_process(delta: float) -> void:
 	if body_size is Vector3:
 		half = body_size.length() / 2.0
 	var forward: Vector3 = -player.head.global_basis.z
-	var target: Vector3 = player.head.global_position + forward * (hover_distance + half)
+	var right: Vector3 = player.head.global_basis.x
+	var target: Vector3 = player.head.global_position + forward * (hover_distance + half) + right * hover_side_offset
 	var velocity := ((target - held_body.global_position) * pull_stiffness).limit_length(pull_max_speed)
 	# Pickups are collected the moment the pull brings them to the player.
 	if held_body.has_method("collect") and held_body.global_position.distance_to(target) < collect_distance:
