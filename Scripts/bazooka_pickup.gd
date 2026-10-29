@@ -23,8 +23,31 @@ var home := Transform3D.IDENTITY
 func _ready() -> void:
 	add_to_group("pickups")
 	home = transform
+	gravity_scale = 0.0
+	linear_damp = 2.0
+	add_hover_cylinder()
 	freeze_mode = RigidBody3D.FREEZE_MODE_KINEMATIC
 	apply_available()
+
+
+# A see-through green cylinder at the spawn point that the bazooka hovers inside.
+func add_hover_cylinder() -> void:
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 1.0
+	mesh.bottom_radius = 1.0
+	mesh.height = 2.0
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.1, 1.0, 0.3, 0.25)
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mesh.material = material
+	var cylinder := MeshInstance3D.new()
+	cylinder.mesh = mesh
+	cylinder.top_level = true
+	cylinder.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(cylinder)
+	cylinder.global_position = home.origin
 
 
 func apply_available() -> void:
