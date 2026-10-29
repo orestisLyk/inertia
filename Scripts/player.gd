@@ -14,6 +14,11 @@ extends CharacterBody3D
 @export var dash_duration := 0.25
 @export var dash_cooldown := 0.6
 @export var knockback_lock_time := 0.3
+@export var ragdoll_min_impulse := 8.0
+@export var ragdoll_min_time := 0.4
+@export var ragdoll_max_time := 1.5
+@export var ragdoll_spin_scale := 0.8
+@export var ragdoll_flip_speed := 8.0
 @export var air_acceleration := 6.0
 @export var wall_jump_velocity := 5.0
 @export var wall_jump_push := 6.0
@@ -41,11 +46,17 @@ var dash_timer := 0.0
 var dash_cooldown_timer := 0.0
 var dash_direction := Vector3.ZERO
 var knockback_timer := 0.0
+var is_ragdolling := false
+var ragdoll_timer := 0.0
+var tumble := Basis.IDENTITY
+var tumble_last_position := Vector3.ZERO
 var wall_jump_timer := 0.0
 var space_was_pressed := false
 
 @onready var head: Node3D = $Head
 @onready var camera: Camera3D = $Head/Camera3D
+@onready var gun: Node3D = $Head/Gun
+@onready var gun_rest: Transform3D = $Head/Gun.transform
 @onready var muzzle: Node3D = $Head/Gun/Muzzle
 @onready var collision: CollisionShape3D = $CollisionShape3D
 @export var rocket_scene: PackedScene = preload("res://Scenes/rocket.tscn")
@@ -172,6 +183,7 @@ func _physics_process(delta: float) -> void:
 	if is_multiplayer_authority() and not is_dead:
 		simulate(delta)
 	update_crouch_visuals(delta)
+	update_ragdoll(delta)
 	update_footsteps(delta)
 	update_health_bars()
 
@@ -195,6 +207,10 @@ func simulate(delta: float) -> void:
 	apply_gravity(delta)
 	dash_cooldown_timer = maxf(dash_cooldown_timer - delta, 0.0)
 	knockback_timer = maxf(knockback_timer - delta, 0.0)
+	if is_ragdolling:
+		ragdoll_timer += delta
+		if ragdoll_timer >= ragdoll_max_time or (ragdoll_timer >= ragdoll_min_time and is_on_floor()):
+			is_ragdolling = false
 	wall_jump_timer = maxf(wall_jump_timer - delta, 0.0)
 	var space_pressed := Input.is_key_pressed(KEY_SPACE)
 	var jumped_from_slide := false
@@ -270,6 +286,31 @@ func apply_knockback(impulse: Vector3) -> void:
 	dash_timer = 0.0
 	if is_sliding:
 		end_slide()
+	if impulse.length() >= ragdoll_min_impulse:
+		is_ragdolling = true
+		ragdoll_timer = 0.0
+
+
+# Purely visual tumble: the body spins along the travel direction and the camera rolls.
+func update_ragdoll(delta: float) -> void:
+	var moved := global_position - tumble_last_position
+	tumble_last_position = global_position
+	var travel := moved / delta if delta > 0.0 else Vector3.ZERO
+	if is_ragdolling and not is_dead:
+		# Flip around the local X axis, plus a spin along the travel direction.
+		var spin := Basis(Vector3.RIGHT, -ragdoll_flip_speed * delta)
+		var axis := Vector3.UP.cross(travel)
+		if axis.length() > 0.01:
+			var local_axis := (global_basis.inverse() * axis).normalized()
+			spin = Basis(local_axis, travel.length() * ragdoll_spin_scale * delta) * spin
+		tumble = (spin * tumble).orthonormalized()
+	else:
+		tumble = tumble.slerp(Basis.IDENTITY, minf(delta * 10.0, 1.0))
+	var height_scale := (collision.shape as CapsuleShape3D).height / stand_height
+	body_mesh.basis = tumble * Basis.from_scale(Vector3(1.0, height_scale, 1.0))
+	# The whole player rotates, so the first-person camera and gun tumble around the head too.
+	camera.basis = tumble
+	gun.transform = Transform3D(tumble * gun_rest.basis, tumble * gun_rest.origin)
 
 
 func jump(just_pressed: bool = true) -> bool:
@@ -381,7 +422,6 @@ func update_crouch_visuals(delta: float) -> void:
 	var head_target := head_stand_y - (stand_height - target_height) / 2.0
 	head.position.y = lerpf(head.position.y, head_target, crouch_lerp_speed * delta)
 	body_mesh.position.y = collision.position.y
-	body_mesh.scale.y = shape.height / stand_height
 
 
 func dash() -> void:
@@ -432,6 +472,7 @@ func set_dead(value: bool) -> void:
 	if multiplayer.get_remote_sender_id() not in [0, 1]:
 		return
 	is_dead = value
+	is_ragdolling = false
 	velocity = Vector3.ZERO
 	collision.set_deferred("disabled", value)
 	if value:

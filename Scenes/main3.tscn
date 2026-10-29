@@ -1,31 +1,31 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://b4onk8bro8rs2"]
 
 [ext_resource type="PackedScene" uid="uid://bi0yo0rwa0yw5" path="res://Scenes/ground.tscn" id="1_ground"]
-[ext_resource type="Script" path="res://Scripts/main.gd" id="2_main"]
-[ext_resource type="Script" path="res://Scripts/level3.gd" id="3_level"]
+[ext_resource type="Script" uid="uid://oilpynwsegt" path="res://Scripts/main.gd" id="2_main"]
+[ext_resource type="Script" uid="uid://cetiie7jhl6xu" path="res://Scripts/level3.gd" id="3_level"]
 
-[node name="Main" type="Node3D"]
+[node name="Main" type="Node3D" unique_id=309786901]
 script = ExtResource("2_main")
 spawn_radius = 8.0
 kill_radius = 80.0
 
-[node name="Players" type="Node3D" parent="."]
+[node name="Players" type="Node3D" parent="." unique_id=1255433104]
 
-[node name="Rockets" type="Node3D" parent="."]
+[node name="Rockets" type="Node3D" parent="." unique_id=593309273]
 
-[node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
-_spawnable_scenes = PackedStringArray("res://Scenes/player.tscn")
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="." unique_id=233727568]
+_spawnable_scenes = PackedStringArray("uid://cqipvshok017n")
 spawn_path = NodePath("../Players")
 
-[node name="RocketSpawner" type="MultiplayerSpawner" parent="."]
-_spawnable_scenes = PackedStringArray("res://Scenes/rocket.tscn")
+[node name="RocketSpawner" type="MultiplayerSpawner" parent="." unique_id=589519625]
+_spawnable_scenes = PackedStringArray("uid://ctelf0awqlp88")
 spawn_path = NodePath("../Rockets")
 
-[node name="Camera3D" type="Camera3D" parent="."]
+[node name="Camera3D" type="Camera3D" parent="." unique_id=366332498]
 transform = Transform3D(1, 0, 0, 0, 0.9, 0.4, 0, -0.4, 0.9, 0, 6, 10)
 
-[node name="Ground" parent="." instance=ExtResource("1_ground")]
+[node name="Ground" parent="." unique_id=394821409 instance=ExtResource("1_ground")]
 transform = Transform3D(100, 0, 0, 0, 3.342, 0, 0, 0, 100, 0, -3.714898, 0)
 
-[node name="Level" type="Node3D" parent="."]
+[node name="Level" type="Node3D" parent="." unique_id=589823365]
 script = ExtResource("3_level")

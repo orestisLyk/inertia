@@ -1,6 +1,14 @@
 [gd_scene format=3 uid="uid://ctelf0awqlp88"]
 
-[ext_resource type="Script" path="res://Scripts/rocket.gd" id="1_rkt"]
+[ext_resource type="Script" uid="uid://bxvlejcxsa865" path="res://Scripts/rocket.gd" id="1_rkt"]
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_rocket"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 1
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_l6m1g"]
 
@@ -12,19 +20,13 @@ emission = Color(1, 0.3, 0, 1)
 [sub_resource type="CylinderMesh" id="CylinderMesh_l6m1g"]
 material = SubResource("StandardMaterial3D_rocket")
 
-[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_rocket"]
-properties/0/path = NodePath(".:position")
-properties/0/spawn = true
-properties/0/replication_mode = 1
-properties/1/path = NodePath(".:rotation")
-properties/1/spawn = true
-properties/1/replication_mode = 1
-
 [node name="Rocket" type="CharacterBody3D" unique_id=1211644461]
 motion_mode = 1
 script = ExtResource("1_rkt")
+initial_speed = 5.0
+blast_radius = 16.0
 
-[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=234645758]
 replication_config = SubResource("SceneReplicationConfig_rocket")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1752809816]

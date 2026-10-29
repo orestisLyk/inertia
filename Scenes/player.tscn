@@ -24,6 +24,9 @@ properties/2/replication_mode = 1
 properties/3/path = NodePath(".:is_crouching")
 properties/3/spawn = true
 properties/3/replication_mode = 2
+properties/4/path = NodePath(".:is_ragdolling")
+properties/4/spawn = true
+properties/4/replication_mode = 2
 
 [node name="Player" type="CharacterBody3D" unique_id=1916438973]
 script = ExtResource("1_cvnsp")
@@ -32,6 +35,8 @@ jump_velocity = 8.005
 slide_speed = 15.0
 slide_duration = 1.21
 dash_duration = 0.5
+ragdoll_spin_scale = 0.2
+ragdoll_flip_speed = 0.2
 punch_force = 200.0
 bump_force = 100.0
 

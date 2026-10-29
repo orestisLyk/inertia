@@ -1,6 +1,7 @@
 extends Node3D
 
 const BLOCK_SCENE: PackedScene = preload("res://Scenes/rigid_block.tscn")
+const BRIDGE_BLOCK_SCENE: PackedScene = preload("res://Scenes/bridge_block.tscn")
 const GROUND_TOP := -2.04
 
 var block_count := 0
@@ -38,16 +39,34 @@ func _ready() -> void:
 	add_block(Vector2(0, 20), GROUND_TOP, Vector3(8, 1, 8))
 	add_block(Vector2(0, -20), GROUND_TOP, Vector3(8, 1, 8))
 
+	bridge(Vector2(0, 0), 10, 4, Vector3(2.2, 0.5, 4.0), 1.75)
 
-func add_block(xz: Vector2, bottom: float, size: Vector3, yaw := 0.0) -> void:
-	var block := BLOCK_SCENE.instantiate()
+
+func add_block(xz: Vector2, bottom: float, size: Vector3, yaw := 0.0, scene: PackedScene = BLOCK_SCENE) -> Node:
+	var block := scene.instantiate()
 	block.name = "Block%d" % block_count
 	block_count += 1
 	block.set("size", size)
 	block.position = Vector3(xz.x, bottom + size.y / 2.0 + 0.01, xz.y)
 	block.rotation.y = yaw
 	add_child(block)
+	return block
 
+
+# Elevated deck along X made of planks that break loose when blasted, with sturdy steps at both ends.
+func bridge(center: Vector2, planks: int, steps: int, plank: Vector3, step_height: float) -> void:
+	var deck_bottom := GROUND_TOP + step_height * steps - plank.y
+	var spacing := plank.x + 0.05
+	for i in planks:
+		var x := (i - (planks - 1) / 2.0) * spacing
+		add_block(center + Vector2(x, 0), deck_bottom, plank, 0.0, BRIDGE_BLOCK_SCENE)
+	var half_deck := planks * spacing / 2.0
+	for i in steps:
+		var offset := half_deck + 1.0 + (steps - 1 - i) * 2.0
+		var size := Vector3(2.0, step_height * (i + 1), plank.z)
+		for side in [-1.0, 1.0]:
+			var step := add_block(center + Vector2(side * offset, 0), GROUND_TOP, size, 0.0, BRIDGE_BLOCK_SCENE)
+			step.set("break_threshold", 40.0)
 
 func pyramid(center: Vector2, levels: int, cube: float) -> void:
 	for level in levels:

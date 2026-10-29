@@ -62,7 +62,9 @@ func push_body(body: Node3D, point: Vector3) -> void:
 	# Inverse square dropoff, capped at full force close to the blast.
 	var strength := blast_force * pow(full_force_distance / distance, 2.0)
 	var impulse := offset.normalized() * strength
-	if body is RigidBody3D:
+	if body.has_method("blast"):
+		body.blast(impulse)
+	elif body is RigidBody3D:
 		body.apply_central_impulse(impulse)
 	elif body.has_method("apply_knockback_networked"):
 		# Damage first so the knockback already accounts for the lost health.

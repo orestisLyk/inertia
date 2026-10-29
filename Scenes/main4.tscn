@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://bksdp8gfry3we"]
+
+[ext_resource type="Script" uid="uid://oilpynwsegt" path="res://Scripts/main.gd" id="2_main"]
+[ext_resource type="Script" uid="uid://h6jwv6lbmgo1" path="res://Scripts/level4.gd" id="3_level"]
+
+[node name="Main" type="Node3D" unique_id=2022974720]
+script = ExtResource("2_main")
+spawn_height = 2.0
+kill_radius = 60.0
+
+[node name="Players" type="Node3D" parent="." unique_id=1616872858]
+
+[node name="Rockets" type="Node3D" parent="." unique_id=1263759450]
+
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="." unique_id=1182261370]
+_spawnable_scenes = PackedStringArray("uid://cqipvshok017n")
+spawn_path = NodePath("../Players")
+
+[node name="RocketSpawner" type="MultiplayerSpawner" parent="." unique_id=2001063141]
+_spawnable_scenes = PackedStringArray("uid://ctelf0awqlp88")
+spawn_path = NodePath("../Rockets")
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=144394886]
+transform = Transform3D(1, 0, 0, 0, 0.9, 0.4, 0, -0.4, 0.9, 0, 6, 10)
+
+[node name="Level" type="Node3D" parent="." unique_id=1439144336]
+script = ExtResource("3_level")

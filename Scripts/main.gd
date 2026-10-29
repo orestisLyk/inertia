@@ -233,6 +233,10 @@ func add_player(id: int) -> void:
 
 
 func random_spawn_position() -> Vector3:
+	# Levels without a floor under the centre can provide their own spawn points.
+	var level := get_node_or_null("Level")
+	if level and level.has_method("get_spawn_position"):
+		return level.get_spawn_position(spawn_height)
 	return Vector3(randf_range(-spawn_radius, spawn_radius), spawn_height, randf_range(-spawn_radius, spawn_radius))
 
 
