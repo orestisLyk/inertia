@@ -10,6 +10,8 @@ extends CharacterBody3D
 @export var stand_height := 2.0
 @export var crouch_height := 1.0
 @export var crouch_lerp_speed := 12.0
+@export var max_power_jump_charge := 1.5
+@export var max_power_jump_multiplier := 2.0
 @export var dash_speed := 18.0
 @export var dash_duration := 0.25
 @export var dash_cooldown := 0.6
@@ -42,6 +44,9 @@ var overhead_back: Sprite3D
 var overhead_fill: Sprite3D
 var hud_back: ColorRect
 var hud_fill: ColorRect
+var power_jump_hud_back: ColorRect
+var power_jump_hud_fill: ColorRect
+var power_jump_charge := 0.0
 var dash_timer := 0.0
 var dash_cooldown_timer := 0.0
 var dash_direction := Vector3.ZERO
@@ -144,6 +149,25 @@ func create_hud_bar() -> void:
 	hud_fill.position = Vector2(3, 3)
 	hud_fill.size = Vector2(234, 16)
 	hud_back.add_child(hud_fill)
+	power_jump_hud_back = ColorRect.new()
+	power_jump_hud_back.color = Color(0, 0, 0, 0.6)
+	power_jump_hud_back.size = Vector2(240, 14)
+	power_jump_hud_back.position = Vector2(20, -64)
+	power_jump_hud_back.set_anchors_preset(Control.PRESET_BOTTOM_LEFT, true)
+	power_jump_hud_back.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	layer.add_child(power_jump_hud_back)
+	var power_jump_label := Label.new()
+	power_jump_label.text = "POWER JUMP"
+	power_jump_label.position = Vector2(20, -84)
+	power_jump_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT, true)
+	power_jump_label.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	power_jump_label.add_theme_font_size_override("font_size", 12)
+	layer.add_child(power_jump_label)
+	power_jump_hud_fill = ColorRect.new()
+	power_jump_hud_fill.position = Vector2(3, 3)
+	power_jump_hud_fill.size = Vector2(0, 8)
+	power_jump_hud_fill.color = Color(0.2, 0.75, 1.0)
+	power_jump_hud_back.add_child(power_jump_hud_fill)
 
 
 func update_health_bars() -> void:
@@ -156,6 +180,10 @@ func update_health_bars() -> void:
 	if hud_fill:
 		hud_fill.size.x = 234.0 * ratio
 		hud_fill.color = health_color()
+	if power_jump_hud_fill:
+		var charge_ratio := clampf(power_jump_charge / maxf(max_power_jump_charge, 0.001), 0.0, 1.0)
+		power_jump_hud_fill.size.x = 234.0 * charge_ratio
+		power_jump_hud_fill.color = Color(0.2, 1.0, 0.65) if charge_ratio >= 1.0 else Color(0.2, 0.75, 1.0)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -219,6 +247,8 @@ func simulate(delta: float) -> void:
 	space_was_pressed = space_pressed
 
 	update_crouch_state()
+	if is_on_floor() and velocity.y <= 0.0 and is_crouching and not is_sliding:
+		power_jump_charge = minf(power_jump_charge + delta, max_power_jump_charge)
 	var dashing := dash_timer > 0.0
 	if dashing:
 		dash_step(delta)
@@ -318,7 +348,10 @@ func jump(just_pressed: bool = true) -> bool:
 		return false
 	if is_on_floor():
 		var jumped_from_slide := is_sliding
-		velocity.y = jump_velocity
+		var charge_ratio := clampf(power_jump_charge / maxf(max_power_jump_charge, 0.001), 0.0, 1.0)
+		var jump_multiplier := lerpf(1.0, max_power_jump_multiplier, charge_ratio) if not jumped_from_slide else 1.0
+		velocity.y = jump_velocity * jump_multiplier
+		power_jump_charge = 0.0
 		if jumped_from_slide:
 			end_slide()
 		return jumped_from_slide
