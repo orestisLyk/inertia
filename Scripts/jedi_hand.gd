@@ -14,6 +14,8 @@ extends "res://Scripts/weapon.gd"
 @export var push_max_charge := 1.5
 @export var push_cooldown := 0.5
 @export var shake_amount := 0.02
+@export var tremble_speed := 6.0
+@export var tremble_spin := 4.0
 @export var push_lunge := 0.4
 @export var push_anim_time := 0.25
 
@@ -21,6 +23,8 @@ var model: Node3D
 var pulling := false
 var charging := false
 var charge := 0.0
+var hud_layer: CanvasLayer
+var hud_fill: ColorRect
 var push_t := 1.0
 var held_body: RigidBody3D
 var selected: RigidBody3D
@@ -41,6 +45,8 @@ func _ready() -> void:
 		var length := 0.11 if i in [1, 2] else 0.09
 		add_box(Vector3(0.03, 0.03, length), Vector3(-0.05 + i * 0.033, 0.0, -0.08 - length / 2.0), 0.0, material)
 	add_box(Vector3(0.03, 0.03, 0.09), Vector3(0.1, 0.0, -0.04), -0.7, material)
+	if is_multiplayer_authority():
+		build_hud()
 
 
 func add_box(size: Vector3, pos: Vector3, yaw: float, material: Material) -> void:
@@ -61,8 +67,13 @@ func _process(delta: float) -> void:
 	if player.is_dead:
 		pulling = false
 		charging = false
-	if charging and is_multiplayer_authority():
+	if charging:
 		charge = minf(charge + delta, push_max_charge)
+	if hud_layer:
+		hud_layer.visible = equipped and not player.is_dead
+		var ratio := charge_ratio()
+		hud_fill.size.x = 234.0 * ratio
+		hud_fill.color = Color(1.0, 0.85, 0.3).lerp(Color(1.0, 0.3, 0.2), ratio)
 	push_t = minf(push_t + delta / push_anim_time, 1.0)
 	var offset := Vector3.ZERO
 	var tilt := Vector3.ZERO
@@ -78,18 +89,53 @@ func _process(delta: float) -> void:
 
 
 func primary_action() -> void:
-	charging = true
-	charge = 0.0
+	set_charging.rpc(true)
 
 
 func primary_released() -> void:
 	if not charging:
 		return
-	charging = false
-	var ratio := clampf(charge / push_max_charge, 0.0, 1.0)
-	charge = 0.0
+	var ratio := charge_ratio()
+	set_charging.rpc(false)
 	play_push.rpc()
 	request_push.rpc_id(1, ratio)
+
+
+func charge_ratio() -> float:
+	return clampf(charge / push_max_charge, 0.0, 1.0)
+
+
+# Every peer charges locally from the start/stop signal, so the server can tremble the held object too.
+@rpc("any_peer", "call_local", "reliable")
+func set_charging(value: bool) -> void:
+	if not is_from_owner():
+		return
+	charging = value
+	charge = 0.0
+
+
+func build_hud() -> void:
+	hud_layer = CanvasLayer.new()
+	hud_layer.visible = false
+	add_child(hud_layer)
+	var label := Label.new()
+	label.text = "FORCE PUSH"
+	label.position = Vector2(20, -128)
+	label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT, true)
+	label.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	label.add_theme_font_size_override("font_size", 12)
+	hud_layer.add_child(label)
+	var back := ColorRect.new()
+	back.color = Color(0, 0, 0, 0.6)
+	back.size = Vector2(240, 14)
+	back.position = Vector2(20, -108)
+	back.set_anchors_preset(Control.PRESET_BOTTOM_LEFT, true)
+	back.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	hud_layer.add_child(back)
+	hud_fill = ColorRect.new()
+	hud_fill.position = Vector2(3, 3)
+	hud_fill.size = Vector2(0, 8)
+	back.add_child(hud_fill)
 
 
 func secondary_action() -> void:
@@ -217,6 +263,11 @@ func _physics_process(delta: float) -> void:
 			return
 	held_body.linear_velocity = velocity
 	held_body.angular_velocity = held_body.angular_velocity.move_toward(Vector3.ZERO, 10.0 * delta)
+	# The held object trembles harder the more force is charged.
+	var tremble := charge_ratio() if charging else 0.0
+	if tremble > 0.0:
+		held_body.linear_velocity += Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * tremble_speed * tremble
+		held_body.angular_velocity += Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * tremble_spin * tremble
 	held_body.sleeping = false
 
 
