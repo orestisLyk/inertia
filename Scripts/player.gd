@@ -12,6 +12,13 @@ extends CharacterBody3D
 @export var crouch_lerp_speed := 12.0
 @export var max_power_jump_charge := 1.5
 @export var max_power_jump_multiplier := 2.0
+@export var stomp_speed := 35.0
+@export var stomp_radius := 8.0
+@export var stomp_min_force := 8.0
+@export var stomp_max_force := 40.0
+@export var stomp_max_height := 15.0
+@export var stomp_up_ratio := 0.4
+@export var stomp_cooldown := 0.3
 @export var dash_speed := 18.0
 @export var dash_duration := 0.25
 @export var dash_cooldown := 0.6
@@ -68,6 +75,9 @@ var space_was_pressed := false
 
 var is_crouching := false
 var is_sliding := false
+var is_stomping := false
+var stomp_start_y := 0.0
+var last_stomp_msec := 0
 var slide_timer := 0.0
 var slide_direction := Vector3.ZERO
 var head_stand_y := 0.0
@@ -250,7 +260,9 @@ func simulate(delta: float) -> void:
 	if is_on_floor() and velocity.y <= 0.0 and is_crouching and not is_sliding:
 		power_jump_charge = minf(power_jump_charge + delta, max_power_jump_charge)
 	var dashing := dash_timer > 0.0
-	if dashing:
+	if is_stomping:
+		velocity = Vector3(0.0, -stomp_speed, 0.0)
+	elif dashing:
 		dash_step(delta)
 	elif is_sliding:
 		slide(delta)
@@ -258,8 +270,59 @@ func simulate(delta: float) -> void:
 		move(delta)
 
 	move_and_slide()
-	if dashing:
+	if is_stomping and is_on_floor():
+		land_stomp()
+	elif dashing:
 		bump_slide_collisions()
+
+
+func start_stomp() -> void:
+	is_stomping = true
+	stomp_start_y = global_position.y
+	dash_timer = 0.0
+	power_jump_charge = 0.0
+
+
+func land_stomp() -> void:
+	is_stomping = false
+	velocity = Vector3.ZERO
+	request_stomp.rpc_id(1, global_position, stomp_start_y - global_position.y)
+
+
+# Runs on the server only; pushes everything in a sphere, harder the longer the fall was.
+@rpc("any_peer", "call_local", "reliable")
+func request_stomp(origin: Vector3, fall_height: float) -> void:
+	if not multiplayer.is_server() or is_dead:
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	if sender != 0 and sender != get_multiplayer_authority():
+		return
+	var now := Time.get_ticks_msec()
+	if now - last_stomp_msec < stomp_cooldown * 1000.0:
+		return
+	last_stomp_msec = now
+	if origin.distance_to(global_position) > max_fire_origin_error:
+		origin = global_position
+	var power := clampf(fall_height / stomp_max_height, 0.0, 1.0)
+	var force := lerpf(stomp_min_force, stomp_max_force, power)
+	var sphere := SphereShape3D.new()
+	sphere.radius = stomp_radius
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = sphere
+	query.transform = Transform3D(Basis.IDENTITY, origin)
+	query.exclude = [get_rid()]
+	for hit in get_world_3d().direct_space_state.intersect_shape(query, 32):
+		var body: Node3D = hit.collider
+		var offset := body.global_position - origin
+		var flat := Vector3(offset.x, 0.0, offset.z)
+		var direction := flat.normalized() if flat.length() > 0.01 else Vector3.ZERO
+		# Closer targets get shoved harder.
+		var falloff := 1.0 - clampf(offset.length() / stomp_radius, 0.0, 1.0) * 0.6
+		var impulse := (direction + Vector3.UP * stomp_up_ratio) * force * falloff
+		if body is RigidBody3D:
+			body.apply_central_impulse(impulse)
+		elif body.has_method("apply_knockback_networked"):
+			body.apply_knockback_networked(impulse)
 
 
 # Dashing into a physics body or another player shoves it once per dash.
@@ -314,6 +377,7 @@ func apply_knockback(impulse: Vector3) -> void:
 	velocity += impulse
 	knockback_timer = knockback_lock_time
 	dash_timer = 0.0
+	is_stomping = false
 	if is_sliding:
 		end_slide()
 	if impulse.length() >= ragdoll_min_impulse:
@@ -368,6 +432,7 @@ func wall_jump() -> void:
 	velocity.y = wall_jump_velocity
 	wall_jump_timer = wall_jump_cooldown
 	dash_timer = 0.0
+	is_stomping = false
 	if is_sliding:
 		end_slide()
 
@@ -406,7 +471,7 @@ func air_control(delta: float) -> void:
 
 
 func update_crouch_state() -> void:
-	var wants_crouch := Input.is_key_pressed(KEY_C)
+	var wants_crouch := Input.is_key_pressed(KEY_CTRL)
 	if wants_crouch and not is_crouching:
 		crouch()
 	elif not wants_crouch and (is_crouching or is_sliding):
@@ -417,6 +482,8 @@ func crouch() -> void:
 	# Crouching while moving on the ground starts a slide.
 	if is_on_floor() and get_input_direction() != Vector3.ZERO:
 		start_slide()
+	elif not is_on_floor() and not is_stomping:
+		start_stomp()
 	is_crouching = true
 
 
@@ -459,7 +526,7 @@ func update_crouch_visuals(delta: float) -> void:
 
 func dash() -> void:
 	var direction := get_input_direction()
-	if direction == Vector3.ZERO or dash_cooldown_timer > 0.0 or dash_timer > 0.0:
+	if direction == Vector3.ZERO or dash_cooldown_timer > 0.0 or dash_timer > 0.0 or is_stomping:
 		return
 	dash_direction = direction
 	bumped_bodies.clear()
@@ -511,6 +578,7 @@ func set_dead(value: bool) -> void:
 	if value:
 		end_slide()
 		dash_timer = 0.0
+		is_stomping = false
 	elif is_multiplayer_authority():
 		is_crouching = false
 
