@@ -30,16 +30,16 @@ func _ready() -> void:
 	bridge(Vector2(0, half), 0.0)
 	bridge(Vector2(-half, 0), PI / 2.0)
 	bridge(Vector2(half, 0), PI / 2.0)
-	add_bazooka(Vector2(ISLAND_OFFSET - 4.5, 	ISLAND_OFFSET), "BazookaPickup")
-		add_bazooka(Vector2(-ISLAND_OFFSET + 4.5, -ISLAND_OFFSET), "BazookaPickup2")
+	add_bazooka(Vector2(ISLAND_OFFSET - 4.5, ISLAND_OFFSET), "BazookaPickup")
+	add_bazooka(Vector2(-ISLAND_OFFSET + 4.5, -ISLAND_OFFSET), "BazookaPickup2")
 
 
-	# A single-shot bazooka hovering on an island.
-	func add_bazooka(xz: Vector2, pickup_name: String) -> void:
-		var pickup := BAZOOKA_PICKUP_SCENE.instantiate() as Node3D
-		pickup.name = pickup_name
-		pickup.set("ammo", 1)
-		pickup.position = Vector3(xz.x, TOP + 1.0, xz.y)
+# A single-shot bazooka hovering on an island.
+func add_bazooka(xz: Vector2, pickup_name: String) -> void:
+	var pickup := BAZOOKA_PICKUP_SCENE.instantiate() as Node3D
+	pickup.name = pickup_name
+	pickup.set("ammo", 1)
+	pickup.position = Vector3(xz.x, TOP + 1.0, xz.y)
 	add_child(pickup)
 
 
