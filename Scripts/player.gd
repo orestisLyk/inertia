@@ -12,6 +12,7 @@ extends CharacterBody3D
 @export var crouch_lerp_speed := 12.0
 @export var max_power_jump_charge := 1.5
 @export var max_power_jump_multiplier := 2.0
+@export var power_jump_decay_rate := 3.0
 @export var stomp_speed := 35.0
 @export var stomp_radius := 8.0
 @export var stomp_min_force := 8.0
@@ -259,6 +260,8 @@ func simulate(delta: float) -> void:
 	update_crouch_state()
 	if is_on_floor() and velocity.y <= 0.0 and is_crouching and not is_sliding:
 		power_jump_charge = minf(power_jump_charge + delta, max_power_jump_charge)
+	elif not is_crouching:
+		power_jump_charge = maxf(power_jump_charge - power_jump_decay_rate * delta, 0.0)
 	var dashing := dash_timer > 0.0
 	if is_stomping:
 		velocity = Vector3(0.0, -stomp_speed, 0.0)
