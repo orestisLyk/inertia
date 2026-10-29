@@ -13,7 +13,8 @@ extends "res://Scripts/weapon.gd"
 @export var push_max_speed := 40.0
 @export var push_max_charge := 1.5
 @export var push_cooldown := 0.5
-@export var shake_amount := 0.02
+@export var grab_lunge := 0.18
+@export var grab_anim_time := 0.35
 @export var tremble_speed := 6.0
 @export var tremble_spin := 4.0
 @export var push_lunge := 0.4
@@ -31,6 +32,7 @@ var selected: RigidBody3D
 var outline_material: ShaderMaterial
 var held_gravity := 1.0
 var last_push_msec := 0
+var grab_t := 1.0
 
 
 func _ready() -> void:
@@ -75,17 +77,14 @@ func _process(delta: float) -> void:
 		hud_fill.size.x = 234.0 * ratio
 		hud_fill.color = Color(1.0, 0.85, 0.3).lerp(Color(1.0, 0.3, 0.2), ratio)
 	push_t = minf(push_t + delta / push_anim_time, 1.0)
+	grab_t = minf(grab_t + delta / grab_anim_time, 1.0)
 	var offset := Vector3.ZERO
-	var tilt := Vector3.ZERO
-	if pulling:
-		offset = Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * shake_amount
-		tilt = Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * 0.05
+	offset.z -= sin(grab_t * PI) * grab_lunge
 	# Wind the hand back while charging, then lunge forward on release.
 	if charging:
 		offset.z += 0.15 * charge / push_max_charge
 	offset.z -= sin(push_t * PI) * push_lunge
 	model.position = offset
-	model.rotation = tilt
 
 
 func primary_action() -> void:
@@ -196,6 +195,8 @@ func is_from_owner() -> bool:
 @rpc("any_peer", "call_local", "reliable")
 func set_pulling(value: bool) -> void:
 	if is_from_owner():
+		if value and not pulling:
+			grab_t = 0.0
 		pulling = value
 
 
