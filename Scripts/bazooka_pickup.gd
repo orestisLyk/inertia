@@ -16,7 +16,6 @@ var available := true:
 
 var home := Transform3D.IDENTITY
 
-@onready var collision: CollisionShape3D = $CollisionShape3D
 @onready var pickup_area: Area3D = $PickupArea
 
 
@@ -69,7 +68,6 @@ func add_hover_cylinder() -> void:
 
 func apply_available() -> void:
 	visible = available
-	collision.set_deferred("disabled", not available)
 	pickup_area.set_deferred("monitoring", available)
 
 
