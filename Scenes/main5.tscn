@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/main.gd" id="2_main"]
+[ext_resource type="Script" path="res://Scripts/level5.gd" id="3_level"]
+[ext_resource type="Script" path="res://Scripts/space_backdrop.gd" id="4_backdrop"]
+
+[node name="Main" type="Node3D"]
+script = ExtResource("2_main")
+spawn_height = 2.0
+kill_radius = 80.0
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="Rockets" type="Node3D" parent="."]
+
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("uid://cqipvshok017n")
+spawn_path = NodePath("../Players")
+
+[node name="RocketSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("uid://ctelf0awqlp88")
+spawn_path = NodePath("../Rockets")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.9, 0.4, 0, -0.4, 0.9, 0, 6, 10)
+
+[node name="Level" type="Node3D" parent="."]
+script = ExtResource("3_level")
+
+[node name="Backdrop" type="Node3D" parent="."]
+script = ExtResource("4_backdrop")
