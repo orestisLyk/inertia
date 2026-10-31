@@ -280,6 +280,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			weapon.secondary_released()
 	elif event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_1, KEY_2]:
 		select_weapon(event.keycode - KEY_1)
+	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SHIFT:
+		dash()
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F:

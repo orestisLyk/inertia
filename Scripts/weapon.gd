@@ -17,9 +17,8 @@ func primary_action() -> void:
 	pass
 
 
-# Right click defaults to the player's dash, so weapons without an alt fire keep it.
 func secondary_action() -> void:
-	player.dash()
+	pass
 
 
 func primary_released() -> void:
