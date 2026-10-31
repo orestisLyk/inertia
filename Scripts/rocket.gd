@@ -6,7 +6,7 @@ extends CharacterBody3D
 @export var blast_radius := 8.0
 @export var blast_force := 20.0
 @export var max_damage := 60.0
-@export var full_force_distance := 1.5
+@export var full_force_distance := 8.0
 @export var self_destruct_time := 5.0
 
 var age := 0.0
