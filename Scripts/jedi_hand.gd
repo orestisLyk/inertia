@@ -15,11 +15,12 @@ extends "res://Scripts/weapon.gd"
 @export var push_cooldown := 0.5
 @export var grab_lunge := 0.18
 @export var grab_anim_time := 0.35
-@export var tremble_speed := 6.0
-@export var tremble_spin := 4.0
+const ChargeEffect := preload("res://Scripts/charge_effect.gd")
+
 @export var push_lunge := 0.4
 @export var push_anim_time := 0.25
 
+var effect: RefCounted
 var model: Node3D
 var pulling := false
 var charging := false
@@ -71,6 +72,11 @@ func _process(delta: float) -> void:
 		charging = false
 	if charging:
 		charge = minf(charge + delta, push_max_charge)
+	if effect != null:
+		if effect.is_valid():
+			effect.update(delta, charge_ratio() if charging else 0.0)
+		else:
+			effect = null
 	if hud_layer:
 		hud_layer.visible = equipped and not player.is_dead
 		var ratio := charge_ratio()
@@ -223,7 +229,27 @@ func request_grab(body_path: NodePath) -> void:
 		held_body.freeze = false
 	held_gravity = held_body.gravity_scale
 	held_body.gravity_scale = 0.0
+	set_held_visual.rpc(held_body.get_path())
 
+
+# The server tells every peer which body is held, so each one can show the charge effect locally.
+@rpc("any_peer", "call_local", "reliable")
+func set_held_visual(path: NodePath) -> void:
+	var sender := multiplayer.get_remote_sender_id()
+	if sender != 0 and sender != 1:
+		return
+	clear_effect()
+	var body: Node3D = null
+	if not path.is_empty():
+		body = get_node_or_null(path) as Node3D
+	if body != null:
+		effect = ChargeEffect.new(body)
+
+
+func clear_effect() -> void:
+	if effect != null:
+		effect.clear()
+		effect = null
 
 @rpc("any_peer", "call_local", "reliable")
 func request_release() -> void:
@@ -232,6 +258,8 @@ func request_release() -> void:
 
 
 func release_hold() -> void:
+	if held_body != null:
+		set_held_visual.rpc(NodePath())
 	if is_instance_valid(held_body):
 		held_body.gravity_scale = held_gravity
 		held_body.remove_meta("held_by")
@@ -264,11 +292,6 @@ func _physics_process(delta: float) -> void:
 			return
 	held_body.linear_velocity = velocity
 	held_body.angular_velocity = held_body.angular_velocity.move_toward(Vector3.ZERO, 10.0 * delta)
-	# The held object trembles harder the more force is charged.
-	var tremble := charge_ratio() if charging else 0.0
-	if tremble > 0.0:
-		held_body.linear_velocity += Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * tremble_speed * tremble
-		held_body.angular_velocity += Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * tremble_spin * tremble
 	held_body.sleeping = false
 
 
